@@ -1,0 +1,2 @@
+10/12/2019 05:00:33 PM: [ COMMAND: [ nohup python /Users/zhangjieru/Documents/code/knowledge_tracing/DKVMN/code/lstm/main_rnn.py --gpu -1 --dataset assist2009_updated --max_iter 50 --heatmap True & ], GIT_REVISION: [b'master'] [b'd6d1126cc522f092171c60b47ec71f23bbedf57c'] ]
+10/12/2019 05:00:33 PM: [ Training with cpu ... ]

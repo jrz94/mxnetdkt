@@ -1,0 +1,10 @@
+10/11/2019 06:09:29 PM: [ COMMAND: [ nohup python /Users/zhangjieru/Documents/code/knowledge_tracing/DKVMN/code/lstm/main_rnn.py --gpu -1 --dataset assist2009_updated --max_iter 50 --test True & ], GIT_REVISION: [b'master'] [b'd6d1126cc522f092171c60b47ec71f23bbedf57c'] ]
+10/11/2019 06:09:29 PM: [ Training with cpu ... ]
+10/11/2019 06:09:30 PM: [ 
+
+Start testing ......................
+ Best epoch: 30 ]
+10/11/2019 06:09:32 PM: [ 
+test_auc	0.8144165619899673 ]
+10/11/2019 06:09:32 PM: [ test_accuracy	0.7685565050331206 ]
+10/11/2019 06:09:32 PM: [ test_loss	0.4696955978870392 ]
