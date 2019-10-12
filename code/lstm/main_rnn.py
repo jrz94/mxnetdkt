@@ -302,7 +302,7 @@ if __name__ == '__main__':
         predict_matrix, unique_questions = get_mastery_by_one_seq(params, file_name, q_data, qa_data, best_epoch)
         print("predict_matrix", predict_matrix)
         print("unique_questions", unique_questions)
-        show(predict_matrix)
+        show(predict_matrix, unique_questions, q_data)
 
 
 

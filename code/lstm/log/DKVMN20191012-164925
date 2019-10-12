@@ -1,6 +1,0 @@
-10/12/2019 04:49:25 PM: [ COMMAND: [ nohup python /Users/zhangjieru/Documents/code/knowledge_tracing/DKVMN/code/lstm/main_rnn.py --gpu -1 --dataset assist2009_updated --max_iter 50 --heatmap True & ], GIT_REVISION: [b'master'] [b'd6d1126cc522f092171c60b47ec71f23bbedf57c'] ]
-10/12/2019 04:49:25 PM: [ Training with cpu ... ]
-10/12/2019 04:49:30 PM: [ 
-
-Start calculating mastery matrix giiven a seq ......................
- Best epoch: 21 ]

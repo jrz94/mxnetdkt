@@ -300,10 +300,29 @@ import seaborn as sns; sns.set()
 import numpy as np
 
 
-def show(matrix):
+def show(matrix, unique_questions, input_q):
+    """
+    :param input_q:
+    :param matrix: 掌握成度估计矩阵 (len(unique_questions), seqlen)
+    :param unique_questions: 问题列表，
+    :return:
+    """
+    sub_input_q = input_q[0][:26]
+    sub_unique_questions = list(set(sub_input_q))
+
+    sub_matrix = np.zeros((len(sub_unique_questions), len(sub_input_q)))
+
+    for i in range(len(sub_unique_questions)):
+        for j in range(len(sub_input_q)):
+            question = sub_unique_questions[i]
+            idx = unique_questions.index(question)
+            sub_matrix[i][j] = matrix[idx][j]
+
     fig = plt.figure()
-    ax = sns.heatmap(matrix)
+    ax = sns.heatmap(sub_matrix)
     plt.show()
+    print("sub_unique_questions", sub_unique_questions)
+    print("sub matrix", sub_matrix)
     return
 
 
