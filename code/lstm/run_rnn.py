@@ -307,7 +307,7 @@ def show(matrix, unique_questions, input_q):
     :param unique_questions: 问题列表，
     :return:
     """
-    sub_input_q = input_q[0][:26]
+    sub_input_q = input_q[0][:15]
     sub_unique_questions = list(set(sub_input_q))
 
     sub_matrix = np.zeros((len(sub_unique_questions), len(sub_input_q)))
@@ -319,7 +319,7 @@ def show(matrix, unique_questions, input_q):
             sub_matrix[i][j] = matrix[idx][j]
 
     fig = plt.figure()
-    ax = sns.heatmap(sub_matrix)
+    ax = sns.heatmap(sub_matrix,cmap="YlGnBu")
     plt.show()
     print("sub_unique_questions", sub_unique_questions)
     print("sub matrix", sub_matrix)
