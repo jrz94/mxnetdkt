@@ -3,6 +3,11 @@ import math
 import mxnet as mx
 import mxnet.ndarray as nd
 from sklearn import metrics
+import matplotlib.pyplot as plt
+import seaborn as sns; sns.set()
+import numpy as np
+import os
+
 
 def norm_clipping(params_grad, threshold):
     norm_val = 0.0
@@ -184,3 +189,80 @@ def test(net, params, q_data, qa_data, label):
     accuracy = compute_accuracy(all_target, all_pred)
 
     return loss, accuracy, auc
+
+
+def get_mastery(net, params, input_q, input_qa):
+    """
+    仅传入一个样本，用户画热力图
+    :param net:
+    :param params:
+    :param q_data: (1, seqlen)
+    :param qa_data:(1, seqlen)
+    :param label:
+    :return:
+    """
+
+    unique_questions = list(set(input_q[0]))
+    unique_questions.remove(0)
+
+    input_q = input_q.T # Shape (seqlen+1, 1)
+    input_qa = input_qa.T # Shape (seqlen+1, 1)
+    target = input_qa[:, :]
+    target = (target - 1) / params.n_question
+    target = np.floor(target)
+
+
+    # 需要把target和 input_qa 错一位
+    target = target[1:]
+    input_qa = input_qa[:-1]
+    input_q = input_q[1:]
+
+    # 给定前i-1个做题历史记录，预测第i次，在所有题目上的答题概率
+    predict_matrix = np.zeros((len(unique_questions), len(input_q)))
+    for i in range(len(input_q)):
+        q = np.zeros((len(input_q), 1))
+        qa = np.zeros((len(input_qa), 1))
+        t = np.zeros((len(target), 1))
+        qa[:i+1] = input_qa[:i+1]
+        t[:i+1] = target[:i+1]
+        q[:i] = input_q[:i]
+
+        q = mx.nd.array(q)
+        qa = mx.nd.array(qa)
+        t = mx.nd.array(t)
+        # 每一步预测unique_questions个概率
+        for j in range(len(unique_questions)):
+            question = unique_questions[j]
+            q[i] = question
+            data_batch = mx.io.DataBatch(data=[q, qa], label=[])
+            net.forward(data_batch, is_train=False)
+            pred = net.get_outputs()[0].asnumpy()
+            predict_matrix[j][i] = pred[i]
+
+    return predict_matrix, unique_questions
+
+
+def show(matrix, unique_questions, input_q):
+    """
+    :param input_q:
+    :param matrix: 掌握成度估计矩阵 (len(unique_questions), seqlen)
+    :param unique_questions: 问题列表，
+    :return:
+    """
+    sub_input_q = input_q[0][:21]
+    sub_unique_questions = list(set(sub_input_q))
+
+    sub_matrix = np.zeros((len(sub_unique_questions), len(sub_input_q)))
+
+    for i in range(len(sub_unique_questions)):
+        for j in range(len(sub_input_q)):
+            question = sub_unique_questions[i]
+            idx = unique_questions.index(question)
+            sub_matrix[i][j] = matrix[idx][j]
+
+    fig = plt.figure()
+    ax = sns.heatmap(sub_matrix,cmap="YlGnBu")
+    plt.show()
+    print("sub_unique_questions", sub_unique_questions)
+    print("sub matrix", sub_matrix)
+    return

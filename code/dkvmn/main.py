@@ -7,7 +7,7 @@ import numpy as np
 
 from load_data import DATA
 from model import ModelDkvmn, ModelDkvmnLstm
-from run import train, test
+from run import *
 
 log = setlogger('./log/', 'DKVMN')
 
@@ -150,6 +150,35 @@ def test_one_dataset(params, file_name, test_q_data, test_qa_data, best_epoch):
     log.info("test_loss\t" + str(test_loss))
 
 
+def get_mastery_by_one_seq(params, file_name, q_data, qa_data, best_epoch):
+    log.info("\n\nStart calculating mastery matrix giiven a seq ......................\n Best epoch: " + str(best_epoch))
+    g_model = ModelDkvmn(n_question=params.n_question,
+                         seqlen=params.seqlen,
+                         batch_size=params.batch_size,
+                         q_embed_dim=params.q_embed_dim,
+                         qa_embed_dim=params.qa_embed_dim,
+                         memory_size=params.memory_size,
+                         memory_key_state_dim=params.memory_key_state_dim,
+                         memory_value_state_dim=params.memory_value_state_dim,
+                         final_fc_dim=params.final_fc_dim)
+    # create a module by given a Symbol
+    test_net = mx.mod.Module(symbol=g_model.sym_gen(),
+                             data_names=['q_data', 'qa_data'],
+                             label_names=['target'],
+                             context=params.ctx)
+    # create memory by given input shapes
+    test_net.bind(data_shapes=[
+        mx.io.DataDesc(name='q_data', shape=(params.seqlen, params.batch_size), layout='SN'),
+        mx.io.DataDesc(name='qa_data', shape=(params.seqlen, params.batch_size), layout='SN')],
+        label_shapes=[mx.io.DataDesc(name='target', shape=(params.seqlen, params.batch_size), layout='SN')])
+    arg_params, aux_params = load_params(prefix=os.path.join('model', params.load, file_name),
+                                         epoch=best_epoch)
+    test_net.init_params(arg_params=arg_params, aux_params=aux_params,
+                         allow_missing=False)
+    predict_matrix, unique_questions = get_mastery(test_net, params, q_data, qa_data)
+    return predict_matrix, unique_questions
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Script to test KVMN.')
     parser.add_argument('--gpus', type=str, default='-1', help='the gpus will be used, e.g "0,1,2,3"')
@@ -158,8 +187,8 @@ if __name__ == '__main__':
     parser.add_argument('--train_test', type=bool, default=True, help='enable testing')
     parser.add_argument('--show', type=bool, default=True, help='print progress')
     parser.add_argument('--dataset', type=str, default='assist2009_updated', help='dataset')
+    parser.add_argument('--heatmap', type=bool, default=False, help='use single sequence data to draw heatmap')
     dataset = parser.parse_args().dataset  # synthetic / assist2009_updated / assist2015 / KDDal0506 / STATICS
-    log.info('dataset', dataset)
 
     # dataset = "assist2009_updated"  # synthetic / assist2009_updated / assist2015 / KDDal0506 / STATICS
 
@@ -264,7 +293,45 @@ if __name__ == '__main__':
 
     seedNum = 224
     np.random.seed(seedNum)
-    if not params.test:
+
+    # 画heatmap图
+    if params.heatmap:
+        q = [2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 5, 4, 5, 4, 5, 4, 5, 6, 7, 6, 8, 4, 8, 4, 8, 4, 8, 4, 8, 4, 8, 6,
+             9, 6, 9, 6, 8, 6, 7, 11, 11, 28, 21, 18, 40, 12, 13, 14, 12, 35, 4, 9, 4, 9, 24, 24, 22, 22, 22, 22, 22,
+             37, 37, 37, 37, 37, 37, 37, 37, 34, 34, 34, 34, 38, 38, 38, 38, 23, 22, 23, 20, 20, 20, 20, 20, 20, 20, 18,
+             24, 34, 34, 34, 34, 34, 34, 34, 34, 34, 34, 34, 34, 60, 60, 21, 21, 21, 21, 21, 20, 18, 44, 50, 50, 22, 22,
+             22, 22, 18, 18, 18, 18, 24, 24, 24, 24, 24, 24, 22, 22, 22, 22, 22, 37, 74, 21, 21, 21, 21, 21, 59, 21, 20,
+             20, 20, 20, 20, 27, 27, 27, 27, 27, 27, 27, 27, 11, 32, 5, 32, 9, 4, 7, 4, 7, 61, 44, 61, 44]
+        targets = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1,
+                   1, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1,
+                   0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1,
+                   1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1,
+                   1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0,
+                   0]
+
+        q_data = np.zeros(params.seqlen + 1)
+        qa_data = np.zeros(params.seqlen + 1)
+        q_data[:len(q)] = q[:]
+        for i in range(len(q)):
+            qa_data[i] = int(q_data[i]) + int(targets[i]) * params.n_question
+
+        best_epoch = 41
+        file_name = 'b' + str(params.batch_size) + \
+                    '_q' + str(params.q_embed_dim) + '_qa' + str(params.qa_embed_dim) + \
+                    '_m' + str(params.memory_size) + '_std' + str(params.init_std) + \
+                    '_lr' + str(params.init_lr) + '_gn' + str(params.maxgradnorm) + \
+                    '_f' + str(params.final_fc_dim) + '_s' + str(seedNum)
+
+        # (unique_questions, seqlen)
+        q_data = q_data.reshape(1, params.seqlen + 1)
+        qa_data = qa_data.reshape(1, params.seqlen + 1)
+        params.batch_size = 1
+        predict_matrix, unique_questions = get_mastery_by_one_seq(params, file_name, q_data, qa_data, best_epoch)
+        print("predict_matrix", predict_matrix)
+        print("unique_questions", unique_questions)
+        show(predict_matrix, unique_questions, q_data)
+
+    if not params.test and not params.heatmap:
         params.memory_key_state_dim = params.q_embed_dim
         params.memory_value_state_dim = params.qa_embed_dim
         d = vars(params)
@@ -292,7 +359,7 @@ if __name__ == '__main__':
             test_data_path = params.data_dir + "/" + params.data_name + "_test.csv"
             test_q_data, test_qa_data = dat.load_data(test_data_path)
             test_one_dataset(params, file_name, test_q_data, test_qa_data, best_epoch)
-    else:
+    if params.test:
         params.memory_key_state_dim = params.q_embed_dim
         params.memory_value_state_dim = params.qa_embed_dim
         test_data_path = params.data_dir + "/" + params.data_name + "_test.csv"

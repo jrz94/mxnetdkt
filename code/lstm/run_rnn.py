@@ -307,8 +307,11 @@ def show(matrix, unique_questions, input_q):
     :param unique_questions: 问题列表，
     :return:
     """
-    sub_input_q = input_q[0][:15]
+    #sub_input_q = input_q[0][:21]
+    sub_input_q = input_q[0][:16]
     sub_unique_questions = list(set(sub_input_q))
+    if 0 in sub_unique_questions:
+        sub_unique_questions.remove(0)
 
     sub_matrix = np.zeros((len(sub_unique_questions), len(sub_input_q)))
 
