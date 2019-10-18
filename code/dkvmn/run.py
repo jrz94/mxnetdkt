@@ -41,11 +41,11 @@ def compute_auc(all_target, all_pred):
     #fpr, tpr, thresholds = metrics.roc_curve(all_target, all_pred, pos_label=1.0)
     return metrics.roc_auc_score(all_target, all_pred)
 
+
 def compute_accuracy(all_target, all_pred):
     all_pred[all_pred > 0.5] = 1.0
     all_pred[all_pred <= 0.5] = 0.0
     return metrics.accuracy_score(all_target, all_pred)
-
 
 
 def train(net, params, q_data, qa_data, label):
