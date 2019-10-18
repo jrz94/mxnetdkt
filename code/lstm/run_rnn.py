@@ -76,15 +76,22 @@ def train(net, params, q_data, qa_data, label):
         target = np.floor(target)
         target = mx.nd.array(target)
 
+        pos_data = form_pos_data(input_q)
+
         input_q = mx.nd.array(input_q)
         input_qa = mx.nd.array(input_qa)
+        pos_data = mx.nd.array(pos_data)
+
+
+        # todo: 生成pos_data
 
         # 需要把target和 input_qa 错一位
         target = target[1:]
         input_q = input_q[1:]
         input_qa = input_qa[:-1]
+        pos_data = pos_data[1:]
 
-        data_batch = mx.io.DataBatch(data=[input_q, input_qa], label=[target])
+        data_batch = mx.io.DataBatch(data=[input_q, input_qa, pos_data], label=[target])
         net.forward(data_batch, is_train=True)
         pred = net.get_outputs()[0].asnumpy() #(seqlen * batch_size, 1)
         net.backward()
@@ -146,16 +153,20 @@ def test(net, params, q_data, qa_data, label):
         target = qa_one_seq[:, :]
         target = (target - 1) / params.n_question
         target = np.floor(target)
+        pos_data = form_pos_data(input_q)
+
         target = mx.nd.array(target)
         input_q = mx.nd.array(input_q)
         input_qa = mx.nd.array(input_qa)
+        pos_data = mx.nd.array(pos_data)
 
         # 需要把target和 input_qa 错一位
         target = target[1:]
         input_qa = input_qa[:-1]
         input_q = input_q[1:] # 取target的标签
+        pos_data = pos_data[1:]
 
-        data_batch = mx.io.DataBatch(data=[input_q, input_qa], label=[])
+        data_batch = mx.io.DataBatch(data=[input_q, input_qa, pos_data], label=[])
         net.forward(data_batch, is_train=False)
         pred = net.get_outputs()[0].asnumpy()
         target = target.asnumpy()
@@ -245,7 +256,6 @@ def get_mastery(net, params, input_q, input_qa):
         qa[:i+1] = input_qa[:i+1]
         t[:i+1] = target[:i+1]
         q[:i] = input_q[:i]
-
         q = mx.nd.array(q)
         qa = mx.nd.array(qa)
         t = mx.nd.array(t)
@@ -255,7 +265,8 @@ def get_mastery(net, params, input_q, input_qa):
             q[i] = question
             data_batch = mx.io.DataBatch(data=[q, qa], label=[])
             net.forward(data_batch, is_train=False)
-            pred = net.get_outputs()[0].asnumpy()
+            outputs = net.get_outputs()
+            pred = outputs[0].asnumpy()
             predict_matrix[j][i] = pred[i]
 
     return predict_matrix, unique_questions
@@ -308,7 +319,7 @@ def show(matrix, unique_questions, input_q):
     :return:
     """
     #sub_input_q = input_q[0][:21]
-    sub_input_q = input_q[0][:16]
+    sub_input_q = input_q[0][:20]
     sub_unique_questions = list(set(sub_input_q))
     if 0 in sub_unique_questions:
         sub_unique_questions.remove(0)
@@ -329,4 +340,29 @@ def show(matrix, unique_questions, input_q):
     return
 
 
+def form_pos_data(input_q):
+    """
+    生成pos_data, pos_data = 目前为止当前题目做过的次数/目前为止总题目个数
+    :param input_q: (seqlen, batch_size)
+    :return: pos_data: (seqlen, batch_size)
+    """
+    shape = input_q.shape
+    input_q = input_q.reshape(shape[1], shape[0]) # (batch_size, seqlen)
+    shape = input_q.shape
+    pos_data = np.zeros(shape=shape)
+    for i in range(shape[0]):
+        for j in range(shape[1]):
+            current_question = input_q[i][j]
+            question_seq = list(input_q[i][:j+1])
+            # todo: 方法1 当前问题在该用户做题序列中目前为止出现的次数的比例
+            # pos_data[i][j] = question_seq.count(current_question) / len(question_seq)
+
+            # todo: 方法2 当前问题在该用户做题序列中目前为止出现的次数
+            pos_data[i][j] = question_seq.count(current_question)
+
+            # todo: 方法3 目前为止序列的长度
+            # pos_data[i][j] = len(question_seq)
+
+    pos_data = pos_data.reshape(shape[1], shape[0]) # (seqlen, batch_size)
+    return pos_data
 

@@ -41,16 +41,17 @@ def train_one_dataset(params, file_name, train_q_data, train_qa_data, valid_q_da
                        q_embed_dim=params.q_embed_dim,
                        qa_embed_dim=params.qa_embed_dim,
                        final_fc_dim=params.final_fc_dim)
-    # create a module by given a Symbol
+    # create a module by given a Symbol todo:
     net = mx.mod.Module(symbol=g_model.sym_gen(),
-                        data_names=['q_data', 'qa_data'],
+                        data_names=['q_data', 'qa_data', 'pos_data'],
                         label_names=['target'],
                         context=params.ctx)
 
 
     # create memory by given input shapes
     net.bind(data_shapes=[mx.io.DataDesc(name='q_data', shape=(params.seqlen, params.batch_size), layout='SN'),
-                          mx.io.DataDesc(name='qa_data', shape=(params.seqlen, params.batch_size), layout='SN')],
+                          mx.io.DataDesc(name='qa_data', shape=(params.seqlen, params.batch_size), layout='SN'),
+                          mx.io.DataDesc(name='pos_data', shape=(params.seqlen, params.batch_size), layout='SN')],
              label_shapes=[mx.io.DataDesc(name='target', shape=(params.seqlen, params.batch_size), layout='SN')])
     # initial parameters with the default random initializer
     net.init_params(initializer=mx.init.Normal(sigma=params.init_std))
@@ -126,13 +127,14 @@ def test_one_dataset(params, file_name, test_q_data, test_qa_data, best_epoch):
                        final_fc_dim=params.final_fc_dim)
     # create a module by given a Symbol
     test_net = mx.mod.Module(symbol=g_model.sym_gen(),
-                        data_names=['q_data', 'qa_data'],
+                        data_names=['q_data', 'qa_data', 'pos_data'],
                         label_names=['target'],
                         context=params.ctx)
     # create memory by given input shapes
     test_net.bind(data_shapes=[mx.io.DataDesc(name='q_data', shape=(params.seqlen, params.batch_size), layout='SN'),
-                          mx.io.DataDesc(name='qa_data', shape=(params.seqlen, params.batch_size), layout='SN')],
-             label_shapes=[mx.io.DataDesc(name='target', shape=(params.seqlen, params.batch_size), layout='SN')])
+                               mx.io.DataDesc(name='qa_data', shape=(params.seqlen, params.batch_size), layout='SN'),
+                               mx.io.DataDesc(name='pos_data', shape=(params.seqlen, params.batch_size), layout='SN')],
+                  label_shapes=[mx.io.DataDesc(name='target', shape=(params.seqlen, params.batch_size), layout='SN')])
     arg_params, aux_params = load_params(prefix=os.path.join('model', params.load, file_name),
                                          epoch=best_epoch)
     test_net.init_params(arg_params=arg_params, aux_params=aux_params,
@@ -281,8 +283,8 @@ if __name__ == '__main__':
         # q = [2,2,2,2,2,2,2,2,3,3,3,3,3,4,5,4,5,4,5,4,5,6,7,6,8,4,8,4,8,4,8,4,8,4,8,6,9,6,9,6,8,6,7,11,11,28,21,18,40,12,13,14,12,35,4,9,4,9,24,24,22,22,22,22,22,37,37,37,37,37,37,37,37,34,34,34,34,38,38,38,38,23,22,23,20,20,20,20,20,20,20,18,24,34,34,34,34,34,34,34,34,34,34,34,34,60,60,21,21,21,21,21,20,18,44,50,50,22,22,22,22,18,18,18,18,24,24,24,24,24,24,22,22,22,22,22,37,74,21,21,21,21,21,59,21,20,20,20,20,20,27,27,27,27,27,27,27,27,11,32,5,32,9,4,7,4,7,61,44,61,44]
         # targets = [0,0,0,0,0,0,0,0,0,0,1,1,1,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,0,0,1,1,1,1,1,1,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,0,0,0,1,1,1,1,0,0,0,1,1,1,1,1,1,0,0,1,1,0,0,1,0,0,1,0,1,1,1,1,0,0,1,1,1,1,0,1,1,0,1,1,1,1,0,1,1,1,1,1,0,0,0,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,0,0,1,1,1,0,0,0,0,1,1,1,1,0,1,1,1,1,1,1,1,1,0,0,0,0]
 
-        q = [2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 5, 4, 5, 4, 5, 4, 5]
-        targets = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1]
+        q = [22,23,23,25,23,23,25,23,21,21,21,21,21,40,23,40,40,40,40,70,70,70,70]
+        targets = [0,0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1,1,1,1,1,1]
 
         q_data = np.zeros(params.seqlen + 1)
         qa_data = np.zeros(params.seqlen + 1)
